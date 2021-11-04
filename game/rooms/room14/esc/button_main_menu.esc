@@ -1,0 +1,15 @@
+
+:use
+
+
+# Show main menu, automatic transitions ENABLED
+show_menu main false
+
+# wait 2 seconds
+wait 2
+
+# Hide main menu, automatic transitions ENABLED
+hide_menu main false
+
+# Transition in back to room
+transition fade_black in

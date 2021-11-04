@@ -4,6 +4,13 @@ extends Node2D
 class_name ESCRoom, "res://addons/escoria-core/design/esc_room.svg"
 
 
+# Emitted when room has finished ":setup" event.
+signal room_setup_done
+
+# Emitted when room has finished ":ready" event.
+signal room_ready_done
+
+
 # Debugging displays for a room
 # NONE: No debug display
 # CAMERA_LIMITS: Display the camera limits
@@ -27,6 +34,11 @@ export(Array, Rect2) var camera_limits: Array = [Rect2()] setget set_camera_limi
 
 # The editor debug display mode
 export(EditorRoomDebugDisplay) var editor_debug_mode = EditorRoomDebugDisplay.NONE setget set_editor_debug_mode
+
+
+# Whether automatic transitions are disabled, we have to await a specific 
+# signal to trigger ready room event
+var automatic_transitions_disabled = false
 
 
 # The player scene instance
@@ -91,29 +103,31 @@ func _ready():
 		global_id = name
 		
 	if esc_script:
-		run_script_event("setup")
-		var rc = yield(escoria.event_manager, "event_finished")
-		while rc[1] != "setup":
-			rc = yield(escoria.event_manager, "event_finished")
-		if rc[0] != ESCExecution.RC_OK:
-			return rc[0]
-		
+		# Manage player location at room start
 		if (escoria.globals_manager.get_global("ESC_LAST_SCENE") == null \
 			or escoria.globals_manager.get_global("ESC_LAST_SCENE").empty()) \
 			and player != null \
 			and escoria.object_manager.get_start_location() != null:
 			player.teleport(escoria.object_manager.get_start_location().node)
-			
 		
-		escoria.main.scene_transition.transition()
-		yield(escoria.main.scene_transition, "transition_done")
-	
-		run_script_event("ready")
-		rc = yield(escoria.event_manager, "event_finished")
-		while rc[1] != "ready":
+		_run_script_event("setup")
+		var rc = yield(escoria.event_manager, "event_finished")
+		while rc[1] != "setup":
 			rc = yield(escoria.event_manager, "event_finished")
 		if rc[0] != ESCExecution.RC_OK:
 			return rc[0]
+			
+		escoria.logger.debug("escroom", ["Room :setup finished"])
+		escoria.logger.debug("escroom", ["Emitting room_setup_done"])
+		emit_signal("room_setup_done")
+		
+		if not automatic_transitions_disabled:
+			yield(escoria.main.scene_transition, "transition_done")
+		start_ready_event()
+		
+		escoria.logger.info("ROOM: Room :ready finished")
+		escoria.logger.info("ROOM: emitting room_ready_done")
+		emit_signal("room_ready_done")
 
 # Draw the camera limits visualization if enabled
 func _draw():
@@ -165,7 +179,7 @@ func set_editor_debug_mode(p_editor_debug_mode: int) -> void:
 # #### Parameters
 #
 # - event_name: the name of the event to run
-func run_script_event(event_name: String):
+func _run_script_event(event_name: String):
 	if !esc_script:
 		return
 	if compiled_script == null:
@@ -173,3 +187,15 @@ func run_script_event(event_name: String):
 	
 	if compiled_script.events.has(event_name):
 		escoria.event_manager.queue_event(compiled_script.events[event_name])
+
+
+func start_ready_event():
+	#escoria.event_manager.interrupt_running_event()
+	_run_script_event("ready")
+	var rc = yield(escoria.event_manager, "event_finished")
+	while rc[1] != "ready":
+		rc = yield(escoria.event_manager, "event_finished")
+	if rc[0] != ESCExecution.RC_OK:
+		return rc[0]
+	
+	emit_signal("room_ready_done")

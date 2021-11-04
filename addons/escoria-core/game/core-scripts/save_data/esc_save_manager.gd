@@ -134,7 +134,8 @@ func load_game(id: int):
 	## ROOM
 	load_statements.append(
 		ESCCommand.new("change_scene %s true" \
-			% save_game.main["current_scene_filename"])
+			% save_game.main["current_scene_filename"]),
+		ESCCommand.new("hide_menu main false")
 	)
 	
 	## OBJECTS

@@ -2,6 +2,7 @@
 
 :setup
 
+
 > [r2_bridge_closed]
 	# Make set_state IMMEDIATE to reach the final frame immediately
 	set_state r2_bridge bridge_close true
@@ -25,7 +26,8 @@
 	set_interactive r2_right_platform false
 	#set_interactive r2_bridge false
 	stop
-	
+
+
 
 :ready
 

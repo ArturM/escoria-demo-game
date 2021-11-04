@@ -14,6 +14,14 @@ enum EDITOR_GAME_DEBUG_DISPLAY {
 }
 
 
+# The main menu node
+export(NodePath) var main_menu
+
+
+# The main menu node
+export(NodePath) var pause_menu
+
+
 # The safe margin around tooltips
 export(float) var mouse_tooltip_margin = 50.0
 
@@ -273,3 +281,20 @@ func update_tooltip_following_mouse_position(p_position: Vector2):
 func _set_editor_debug_mode(p_editor_debug_mode: int) -> void:
 	editor_debug_mode = p_editor_debug_mode
 	update()
+
+
+# Pauses the game. Reimplement to eventually show a specific UI.
+func pause_game():
+	pass
+
+# Unpause the game. Reimplement to eventually hide a specific UI.
+func unpause_game():
+	pass
+
+# Shows the main menu. Reomplement to show a specific UI.
+func show_main_menu():
+	pass
+
+# Hides the main menu. Reomplement to hide a specific UI.
+func hide_main_menu():
+	pass

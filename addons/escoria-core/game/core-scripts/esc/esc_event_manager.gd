@@ -2,7 +2,6 @@
 extends Node
 class_name ESCEventManager
 
-
 # Emitted when the event did finish running
 signal event_finished(event_name, return_code)
 

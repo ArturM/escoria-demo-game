@@ -3,8 +3,11 @@ extends ColorRect
 class_name ESCTransitionPlayer
 
 # Emitted when the transition was played
-signal transition_done
+signal transition_done(transition_id)
 
+# Id of the transition. Allows keeping track of the actual transition 
+# being played or finished
+onready var transition_id: int = 0
 
 # The valid transition modes
 enum TRANSITION_MODE {
@@ -47,14 +50,15 @@ func transition(
 	transition_name: String = "", 
 	mode: int = TRANSITION_MODE.IN,
 	duration: float = 1.0
-) -> void:
+) -> int:
 	if not has_transition(transition_name):
 		escoria.logger.report_errors(
 			"transition: Transition %s not found" % transition_name,
 			[]
 		)
-		
+	
 	material = ResourceLoader.load(get_transition(transition_name))
+	transition_id += 1
 	
 	var start = 0
 	var end = 1
@@ -68,6 +72,8 @@ func transition(
 		_tween.stop_all()
 		_tween.remove_all()
 	
+	self.material.set_shader_param("cutoff", start)
+	
 	_tween.interpolate_property(
 		$".",
 		"material:shader_param/cutoff",
@@ -76,8 +82,9 @@ func transition(
 		duration
 	)
 	_was_canceled = false
+	_tween.stop_all()
 	_tween.start()
-	
+	return transition_id
 
 
 # Returns the full path for a transition shader based on its name
@@ -112,6 +119,6 @@ func has_transition(name: String) -> bool:
 
 func _on_tween_completed():
 	if not _was_canceled:
-		emit_signal("transition_done")
 		_tween.stop_all()
 		_tween.remove_all()
+		emit_signal("transition_done", transition_id)

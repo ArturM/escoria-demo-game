@@ -1,4 +1,4 @@
-# `change_scene path [disable_automatic_transition] [run_events]`
+# `change_scene path [disable_automatic_transition=false] [run_events=true]`
 #
 # Loads a new scene, specified by "path". 
 # The `disable_automatic_transition` is a boolean (default false) can be set 
@@ -66,11 +66,18 @@ func run(command_params: Array) -> int:
 		escoria.dialog_player.interrupt()
 	
 	if !command_params[1]:
-		escoria.main.scene_transition.transition(
+		var transition_id = escoria.main.scene_transition.transition(
 			"", 
 			ESCTransitionPlayer.TRANSITION_MODE.OUT
 		)
-		yield(escoria.main.scene_transition, "transition_done")
+		while yield(
+			escoria.main.scene_transition, 
+			"transition_done"
+		) != transition_id:
+			pass
+	
+	# Hide main menu
+	escoria.game_scene.hide_main_menu()
 	
 	escoria.inputs_manager.clear_stack()
 	
@@ -93,16 +100,35 @@ func run(command_params: Array) -> int:
 	# Load room scene
 	var room_scene = res_room.instance()
 	if room_scene:
+		
+		if command_params[1]:
+			room_scene.automatic_transitions_disabled = true
+		
 		room_scene.add_child(escoria.game_scene)
 		room_scene.move_child(escoria.game_scene, 0)
 		room_scene.game = escoria.game_scene
 		escoria.main.set_scene(room_scene)
 		
+		escoria.logger.debug("change_scene", ["Emitting room_ready_to_setup"])
+		room_scene.emit_signal("room_ready_to_setup")
+		
+		
 		# If automatic transition is not disabled, play the transition
 		if not command_params[1]:
-			escoria.main.scene_transition.transition()
-			yield(escoria.main.scene_transition, "transition_done")
-				
+			yield(escoria.get_tree().create_timer(0.1), "timeout")
+			var transition_id = escoria.main.scene_transition.transition()
+			
+			while yield(
+				escoria.main.scene_transition, 
+				"transition_done"
+			) != transition_id:
+				pass
+		
+		escoria.logger.debug("change_scene", ["Waiting for room_setup_done"])
+		yield(room_scene, "room_setup_done")
+		
+#		room_scene.start_event("ready")
+		
 		# Clear queued resources
 		escoria.resource_cache.clear()
 		
